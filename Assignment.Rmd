@@ -25,8 +25,8 @@ The data for this project come from this source: [http://groupware.les.inf.puc-r
 First  training and test data were imported from two separate CSV files where the empty fields were substituted with NAs.The number of variables and the number of samples are given by the number of columns and number of rows respectively.
 ```{r echo=FALSE}
 # load data
-trainData <- read.csv("D:/Coursera/JH_DataScience/Practical ML/pml-training.csv",na.strings=c(""," ","NA"))
-testData <- read.csv("D:/Coursera/JH_DataScience/Practical ML/pml-testing.csv")
+trainData <- read.csv("pml-training.csv",na.strings=c(""," ","NA"))
+testData <- read.csv("pml-testing.csv")
 
 dim(trainData)
 
