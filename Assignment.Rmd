@@ -1,0 +1,111 @@
+---
+title: "Practical Machine Learning Assignment"
+author: "Stefan Salzmann"
+date: "23.11.2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+```{r echo=FALSE}
+library(ggplot2)
+library(caret)
+set.seed(2020)
+```
+In this project, the goal was to use data from accelerometers on the belt, forearm, arm, and dumbbell of 6 participants and classify the correctness of specific movements. 
+They were asked to perform barbell lifts correctly and incorrectly in 5 different ways.
+
+The data for this project come from this source: [http://groupware.les.inf.puc-rio.br/har](http://groupware.les.inf.puc-rio.br/har).
+
+
+## Data Cleaning
+First  training and test data were imported from two separate CSV files where the empty fields were substituted with NAs.The number of variables and the number of samples are given by the number of columns and number of rows respectively.
+```{r echo=FALSE}
+# load data
+trainData <- read.csv("D:/Coursera/JH_DataScience/Practical ML/pml-training.csv",na.strings=c(""," ","NA"))
+testData <- read.csv("D:/Coursera/JH_DataScience/Practical ML/pml-testing.csv")
+
+dim(trainData)
+
+```
+Next the data samples were the new_Window variable had a value "yes" were removed from the data set.
+As final data cleaning step all variables that had NA values were removed from the data set. Also the variables that were not exercise specific like user_name or time_stamp were removed from the the data set. this led to the following number of samples and variables in the training set.
+```{r echo=FALSE}
+standardTrainData <- trainData[trainData$new_window=="no",]
+standardTestData <- testData[testData$new_window=="no",]
+
+numNaPerVaribale <- sapply(standardTrainData, function(x) sum(is.na(x)))
+standardTrainDataClean <- standardTrainData[, numNaPerVaribale == 0]
+standardTestDataClean <- standardTestData[, numNaPerVaribale == 0]
+
+dfTrain <- subset(standardTrainDataClean, select = -c(X,
+                                                      user_name,
+                                                      raw_timestamp_part_1,
+                                                      raw_timestamp_part_2,
+                                                      cvtd_timestamp,
+                                                      new_window,
+                                                      num_window))
+dfTest <- subset(standardTestDataClean, select = -c(X,
+                                                    user_name,
+                                                    raw_timestamp_part_1,
+                                                    raw_timestamp_part_2,
+                                                    cvtd_timestamp,
+                                                    new_window,
+                                                    num_window,
+                                                    problem_id))
+
+dim(dfTrain)
+ 
+```
+
+
+The following variables were used to build the model.
+```{r echo=FALSE}
+colnames(dfTrain)
+```
+
+## Model
+### Pre Process
+
+The 52 predictor variables were pre processed using the Principal Component Analysis method which should capture 90% of the data's variance. The Data was also centered an scaled.
+```{r echo=FALSE}
+classe <- dfTrain$classe
+predictors <- subset(dfTrain, select = -c(classe))
+modelPca = preProcess(predictors,
+                      method= "pca",
+                      thresh = 0.9)
+print(modelPca)
+dfTrainPca <- predict(modelPca, predictors)
+trainDataModel1 <- data.frame(classe, dfTrainPca)
+
+```
+
+### Classifier
+
+A random forest classifier with 500 trees was trained. During the training process a 10-fold cross validation was applied.
+
+```{r echo=FALSE}
+trControl <- trainControl(method = "cv",
+                          number = 10,
+                          verbose = FALSE)
+
+modelRF <- train(classe ~ .,
+                 data = trainDataModel1,
+                 method="rf",
+                 trControl = trControl,
+                 metric = "Accuracy")
+
+print(modelRF)
+```
+
+The estimated out of sample error for this model is ~1.9%
+ 
+## Test
+When applying the model to the test data. The following predictions were made.
+```{r echo=FALSE}
+predModelRf <- predict(modelRF,predict(modelPca,dfTest))
+predModelRf
+```
